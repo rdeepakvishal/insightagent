@@ -1,0 +1,68 @@
+# metrics.yaml
+# ------------------------------------------------------------------------------
+# Curated metric catalog (a lightweight semantic layer). This is the demo's
+# equivalent of a production "Knowledge Base": it gives the agent the business
+# definitions and the canonical SQL logic for each metric, so answers stay
+# consistent instead of the model re-deriving a metric a slightly different way
+# each time. Edit the definitions here and every answer follows suit.
+
+domain: >
+  StreamFlix is a subscription video streaming service. Customers sign up on a
+  plan, are billed monthly, and either stay active, cancel on purpose
+  (voluntary churn), or are lost because their payments stop going through
+  (involuntary churn). The analytics priority is understanding and reducing
+  churn, with particular focus on the difference between voluntary and
+  involuntary churn.
+
+metrics:
+  - name: Active Subscribers
+    definition: Count of subscriptions whose status is currently 'active'.
+    sql_logic: "COUNT(*) FROM subscriptions WHERE status = 'active'"
+
+  - name: MRR (Monthly Recurring Revenue)
+    definition: Sum of mrr across currently active subscriptions.
+    sql_logic: "SUM(mrr) FROM subscriptions WHERE status = 'active'"
+
+  - name: ARPU
+    definition: Average monthly recurring revenue per active subscriber.
+    sql_logic: "AVG(mrr) FROM subscriptions WHERE status = 'active'"
+
+  - name: Overall Churn Rate
+    definition: Share of all subscriptions that have churned (voluntary or involuntary).
+    sql_logic: "AVG(CASE WHEN status = 'churned' THEN 1.0 ELSE 0 END) FROM subscriptions"
+
+  - name: Voluntary Churn Rate
+    definition: Share of subscriptions cancelled deliberately by the customer.
+    sql_logic: "AVG(CASE WHEN churn_type = 'voluntary' THEN 1.0 ELSE 0 END) FROM subscriptions"
+
+  - name: Involuntary Churn Rate
+    definition: >
+      Share of subscriptions lost because billing failed (payment could not be
+      collected). This is recoverable churn and is the highest-leverage metric
+      to act on.
+    sql_logic: "AVG(CASE WHEN churn_type = 'involuntary' THEN 1.0 ELSE 0 END) FROM subscriptions"
+
+  - name: Payment Success Rate
+    definition: Share of payment attempts with status 'success'.
+    sql_logic: "AVG(CASE WHEN status = 'success' THEN 1.0 ELSE 0 END) FROM payments"
+
+  - name: Payment Failure Rate
+    definition: Share of payment attempts with status 'failed'.
+    sql_logic: "AVG(CASE WHEN status = 'failed' THEN 1.0 ELSE 0 END) FROM payments"
+
+  - name: Average Monthly Streaming Hours
+    definition: Average streaming_hours per customer-month in the engagement table.
+    sql_logic: "AVG(streaming_hours) FROM engagement"
+
+  - name: Average Tenure
+    definition: Average number of months a subscription has lasted.
+    sql_logic: "AVG(tenure_months) FROM subscriptions"
+
+# Plain-language hints the agent should treat as ground truth.
+business_rules:
+  - "churn_type is 'active' for live subscriptions, otherwise 'voluntary' or 'involuntary'."
+  - "Involuntary churn is caused by failed payments; it is recoverable and the top business priority."
+  - "Engagement (streaming_hours) is the strongest leading indicator of voluntary churn."
+  - "A payment 'amount' is negative when status = 'refunded'."
+  - "Dates are stored as ISO text (YYYY-MM-DD); use SQLite date functions like strftime for month grouping."
+  - "Always join on customer_id; subscription_id equals customer_id in this dataset (one subscription per customer)."
