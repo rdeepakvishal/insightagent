@@ -12,6 +12,26 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
+_CHURN_RATE_KEYWORDS = ("churn_rate", "churn rate", "retention_rate", "retention rate")
+_CANCELLATION_KEYWORDS = ("cancel", "cancellation", "churned", "lost")
+
+
+def _enforce_chart_rules(spec: dict, df: pd.DataFrame) -> dict:
+    """Override chart type based on business rules."""
+    y = (spec.get("y") or "").lower()
+    title = (spec.get("title") or "").lower()
+    combined = y + " " + title
+
+    if any(k in combined for k in _CHURN_RATE_KEYWORDS):
+        spec = {**spec, "chart_type": "line"}
+    elif any(k in combined for k in _CANCELLATION_KEYWORDS):
+        spec = {**spec, "chart_type": "bar"}
+    elif spec.get("chart_type") == "pie":
+        spec = {**spec, "chart_type": "bar"}
+
+    return spec
+
+
 def _heuristic_spec(df: pd.DataFrame) -> dict | None:
     """Pick a reasonable chart when the agent did not supply one."""
     if df is None or df.empty or df.shape[1] < 2:
@@ -37,6 +57,7 @@ def build_figure(df: pd.DataFrame | None, spec: dict | None):
     if not spec:
         return None
 
+    spec = _enforce_chart_rules(spec, df)
     kind = spec.get("chart_type", "bar")
     x, y = spec.get("x"), spec.get("y")
     color = spec.get("color")
@@ -44,24 +65,21 @@ def build_figure(df: pd.DataFrame | None, spec: dict | None):
 
     # Validate columns against the actual frame; fall back if mismatched.
     valid = set(df.columns)
-    if x not in valid or (y not in valid and kind != "pie"):
+    if x not in valid or y not in valid:
         spec = _heuristic_spec(df)
         if not spec:
             return None
+        spec = _enforce_chart_rules(spec, df)
         kind, x, y, color = spec["chart_type"], spec["x"], spec["y"], spec.get("color")
         title = spec.get("title", title)
     if color and color not in valid:
         color = None
 
     try:
-        if kind == "bar":
-            fig = px.bar(df, x=x, y=y, color=color, title=title)
-        elif kind == "line":
+        if kind == "line":
             fig = px.line(df, x=x, y=y, color=color, markers=True, title=title)
         elif kind == "scatter":
             fig = px.scatter(df, x=x, y=y, color=color, title=title)
-        elif kind == "pie":
-            fig = px.pie(df, names=x, values=y, title=title)
         else:
             fig = px.bar(df, x=x, y=y, color=color, title=title)
     except Exception:  # noqa: BLE001  any plotting issue -> no chart, not a crash
