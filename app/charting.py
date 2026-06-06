@@ -21,6 +21,14 @@ def _is_temporal(x: str | None) -> bool:
     return bool(x) and any(k in x.lower() for k in _TEMPORAL_KEYWORDS)
 
 
+def _is_rate(col: str | None) -> bool:
+    """A rate/percentage column we should render as a percentage."""
+    if not col:
+        return False
+    c = col.lower()
+    return any(k in c for k in ("rate", "pct", "percent", "ratio", "share"))
+
+
 def _enforce_chart_rules(spec: dict, df: pd.DataFrame) -> dict:
     """Override chart type based on business rules.
 
@@ -86,6 +94,10 @@ def build_figure(df: pd.DataFrame | None, spec: dict | None):
         title = spec.get("title", title)
     if color and color not in valid:
         color = None
+    # A continuous numeric column as the color legend produces an unreadable
+    # list of raw floats. Drop it; the x/y already carry the information.
+    if color and pd.api.types.is_numeric_dtype(df[color]):
+        color = None
 
     try:
         if kind == "line":
@@ -96,6 +108,13 @@ def build_figure(df: pd.DataFrame | None, spec: dict | None):
             fig = px.bar(df, x=x, y=y, color=color, title=title)
     except Exception:  # noqa: BLE001  any plotting issue -> no chart, not a crash
         return None
+
+    # Render rate columns as percentages, rounded to 2 decimals.
+    if _is_rate(y):
+        fig.update_yaxes(tickformat=".2%")
+        fig.update_traces(hovertemplate=f"%{{x}}<br>{y}=%{{y:.2%}}<extra></extra>")
+    if _is_rate(x):
+        fig.update_xaxes(tickformat=".2%")
 
     fig.update_layout(margin=dict(l=10, r=10, t=50, b=10), height=420)
     return fig
