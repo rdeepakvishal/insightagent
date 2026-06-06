@@ -14,16 +14,28 @@ import plotly.graph_objects as go
 
 _CHURN_RATE_KEYWORDS = ("churn_rate", "churn rate", "retention_rate", "retention rate")
 _CANCELLATION_KEYWORDS = ("cancel", "cancellation", "churned", "lost")
+_TEMPORAL_KEYWORDS = ("month", "date", "year", "day", "week", "quarter", "period")
+
+
+def _is_temporal(x: str | None) -> bool:
+    return bool(x) and any(k in x.lower() for k in _TEMPORAL_KEYWORDS)
 
 
 def _enforce_chart_rules(spec: dict, df: pd.DataFrame) -> dict:
-    """Override chart type based on business rules."""
+    """Override chart type based on business rules.
+
+    - Rates over time (churn/retention with a temporal x-axis) -> line.
+    - Rates compared across categories -> bar (a line implies a trend that
+      isn't there).
+    - Absolute cancellations -> bar.
+    - Never pie.
+    """
     y = (spec.get("y") or "").lower()
     title = (spec.get("title") or "").lower()
     combined = y + " " + title
 
     if any(k in combined for k in _CHURN_RATE_KEYWORDS):
-        spec = {**spec, "chart_type": "line"}
+        spec = {**spec, "chart_type": "line" if _is_temporal(spec.get("x")) else "bar"}
     elif any(k in combined for k in _CANCELLATION_KEYWORDS):
         spec = {**spec, "chart_type": "bar"}
     elif spec.get("chart_type") == "pie":
