@@ -66,6 +66,7 @@ with st.sidebar:
             st.session_state["pending"] = q
     st.divider()
     st.caption("5 tables · 6,000 customers · ~78k payments · ~73k engagement rows")
+    st.markdown("**[View source on GitHub](https://github.com/rdeepakvishal/insightagent)**", unsafe_allow_html=True)
 
 # --------------------------------------------------------------------------- #
 # Header
