@@ -4,7 +4,7 @@
 
 > Built as a public, shareable distillation of an internal agentic BI assistant I shipped at Amazon Prime Video, where Senior Product Leaders and Directors query 100+ tables and 120+ metrics in natural language. This repo recreates the core pattern on a synthetic subscription-payments dataset so the approach can be inspected end to end.
 
-**Live demo:** _add your Streamlit Cloud / Hugging Face Spaces link here_
+**Live demo:** https://insightagent-dvr.streamlit.app/
 **Author:** Deepak Vishal Rajan ([LinkedIn](https://www.linkedin.com/in/deepak-vishal-rajan/))
 
 ---
