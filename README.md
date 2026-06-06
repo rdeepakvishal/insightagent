@@ -115,10 +115,12 @@ No key handy? `python scripts/demo_offline.py` runs the canonical analyses witho
 
 ## Deploy a public link
 
+**Live demo:** [insightagent-dvr.streamlit.app](https://insightagent-dvr.streamlit.app)
+
 **Streamlit Community Cloud**
 
 1. Push this repo to GitHub (the generated `data/streamflix.db` is small; commit it, or run the generator in a startup step).
-2. Create an app on share.streamlit.io pointing at `streamlit_app.py`.
+2. Create an app on [share.streamlit.io](https://share.streamlit.io) pointing at `streamlit_app.py`.
 3. In the app's Secrets, add `ANTHROPIC_API_KEY`. Streamlit exposes secrets as environment variables, so the app picks it up automatically.
 
 **Hugging Face Spaces (Streamlit SDK)**
