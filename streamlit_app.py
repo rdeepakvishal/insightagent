@@ -313,21 +313,12 @@ def _render_data_browser() -> None:
     st.caption("Synthetic data generated for demo purposes — no real customers.")
 
 
-tab_defs = "📖 Metric definitions"
-tab_data = "🔎 Browse the data"
-if _HAS_SHADCN:
-    selected = ui.tabs(options=[tab_defs, tab_data], default_value=tab_defs,
-                       key="onboarding_tabs")
-    if selected == tab_defs:
-        _render_definitions()
-    else:
-        _render_data_browser()
-else:
-    t1, t2 = st.tabs([tab_defs, tab_data])
-    with t1:
-        _render_definitions()
-    with t2:
-        _render_data_browser()
+# Collapsible accordions — closed by default, open only when clicked.
+with st.expander("📖 Metric definitions", expanded=False):
+    _render_definitions()
+
+with st.expander("🔎 Browse the data", expanded=False):
+    _render_data_browser()
 
 st.divider()
 
