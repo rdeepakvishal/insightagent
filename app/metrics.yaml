@@ -19,13 +19,11 @@ metrics:
     definition: Count of subscriptions whose status is currently 'active'.
     sql_logic: "COUNT(*) FROM subscriptions WHERE status = 'active'"
 
-  - name: MRR (Monthly Recurring Revenue)
-    definition: Sum of mrr across currently active subscriptions.
-    sql_logic: "SUM(mrr) FROM subscriptions WHERE status = 'active'"
-
-  - name: ARPU
-    definition: Average monthly recurring revenue per active subscriber.
-    sql_logic: "AVG(mrr) FROM subscriptions WHERE status = 'active'"
+  - name: Subscription Cost
+    definition: >
+      The monthly subscription fee a customer pays for their plan (the `mrr`
+      column on a subscription). Use AVG for the typical price across a group.
+    sql_logic: "AVG(mrr) FROM subscriptions"
 
   - name: Overall Churn Rate
     definition: Share of all subscriptions that have churned (voluntary or involuntary).

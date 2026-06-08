@@ -47,11 +47,9 @@ def _inject_css() -> None:
                 radial-gradient(1000px 500px at 110% 0%, rgba(45,212,191,0.06), transparent 55%),
                 var(--bg);
         }
-        /* Headings get a subtle teal gradient */
+        /* Heading weight/spacing. Use a teal accent on a span instead of
+           clipping the whole H1 (which turns emoji into invisible boxes). */
         h1 {
-            background: linear-gradient(90deg, #e6f1ef 0%, var(--teal) 90%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
             font-weight: 800 !important;
             letter-spacing: -0.5px;
         }
@@ -102,7 +100,7 @@ SAMPLE_QUESTIONS = [
     "Compare voluntary and involuntary churn rates by payment method.",
     "How does average streaming engagement differ between churned and active customers?",
     "Which acquisition channel has the highest churn rate?",
-    "What is our monthly recurring revenue and active subscriber count?",
+    "What is the average subscription cost and active subscriber count?",
     "Show the trend of new signups by month.",
     "What are the most common payment failure reasons?",
 ]
