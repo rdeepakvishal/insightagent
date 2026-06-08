@@ -164,6 +164,8 @@ SAMPLE_QUESTIONS = [
     "Which acquisition channel has the highest churn rate?",
     "What is the average subscription cost and active subscriber count?",
     "Show the trend of new signups by month.",
+    "How has involuntary churn trended over the last 12 months?",
+    "How has average streaming engagement changed month over month?",
     "What are the most common payment failure reasons?",
 ]
 
