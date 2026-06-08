@@ -85,9 +85,64 @@ def _inject_css() -> None:
             border: 1px solid rgba(255,255,255,0.05);
             border-radius: 12px;
         }
-        /* Chat input glow */
+        /* Chat input: rounded, padded, soft teal border (no harsh box) */
+        div[data-testid="stChatInput"] {
+            background: var(--panel);
+            border: 1px solid rgba(45,212,191,0.30);
+            border-radius: 14px;
+            padding: 4px 8px;
+        }
         div[data-testid="stChatInput"] textarea {
-            border: 1px solid rgba(45,212,191,0.35) !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 8px 10px !important;
+        }
+        div[data-testid="stChatInput"]:focus-within {
+            border-color: var(--teal);
+            box-shadow: 0 0 0 2px rgba(45,212,191,0.20);
+        }
+
+        /* Translucent glass KPI cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin: 8px 0 4px 0;
+        }
+        .kpi-card {
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(45,212,191,0.22);
+            border-radius: 16px;
+            padding: 18px 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(45,212,191,0.55);
+        }
+        .kpi-title {
+            color: rgba(230,241,239,0.65);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .kpi-value {
+            color: #e6f1ef;
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.5px;
+        }
+        .kpi-desc {
+            color: rgba(230,241,239,0.50);
+            font-size: 0.8rem;
+            margin-top: 4px;
+        }
+        @media (max-width: 900px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
         }
         /* Links + code accents in teal */
         a { color: var(--teal) !important; }
@@ -193,23 +248,24 @@ st.markdown(
 meta = _metrics_meta()
 stats = _headline_stats()
 
-# --- Headline stat cards --------------------------------------------------- #
+# --- Headline stat cards (translucent glass) ------------------------------- #
 cards = [
     ("Active subscribers", f"{stats['active']:,}", "currently on a live plan"),
     ("Overall churn rate", f"{stats['churn']:.1%}", "of all subscriptions"),
     ("Involuntary churn", f"{stats['involuntary']:.1%}", "lost to failed payments"),
     ("Avg subscription cost", f"${stats['cost']:,.2f}", "per month"),
 ]
-if _HAS_SHADCN:
-    cols = st.columns(4)
-    for col, (title, value, desc) in zip(cols, cards):
-        with col:
-            ui.metric_card(title=title, content=value, description=desc,
-                           key=f"stat_{title}")
-else:
-    cols = st.columns(4)
-    for col, (title, value, desc) in zip(cols, cards):
-        col.metric(title, value, help=desc)
+_card_html = "".join(
+    f"""
+    <div class="kpi-card">
+        <div class="kpi-title">{title}</div>
+        <div class="kpi-value">{value}</div>
+        <div class="kpi-desc">{desc}</div>
+    </div>
+    """
+    for title, value, desc in cards
+)
+st.markdown(f'<div class="kpi-grid">{_card_html}</div>', unsafe_allow_html=True)
 
 # --- Onboarding: context + definitions + data browser ---------------------- #
 st.markdown(
