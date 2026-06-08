@@ -19,6 +19,13 @@ import time
 import streamlit as st
 from dotenv import load_dotenv
 
+try:
+    import streamlit_shadcn_ui as ui
+    _HAS_SHADCN = True
+except Exception:  # noqa: BLE001  fall back to native widgets if unavailable
+    ui = None
+    _HAS_SHADCN = False
+
 from app import charting, config, database
 from app.agent import ask
 from app.semantic_layer import load_metrics
@@ -155,6 +162,25 @@ def _table_preview(table: str, n: int) -> "object":
     return database.sample_rows(table, n)
 
 
+@st.cache_data(show_spinner=False)
+def _headline_stats() -> dict:
+    """Key numbers for the top stat cards."""
+    def scalar(sql: str):
+        return database.run_query(sql).dataframe.iloc[0, 0]
+
+    return {
+        "active": int(scalar(
+            "SELECT COUNT(*) FROM subscriptions WHERE status = 'active'")),
+        "churn": float(scalar(
+            "SELECT AVG(CASE WHEN status='churned' THEN 1.0 ELSE 0 END) "
+            "FROM subscriptions")),
+        "involuntary": float(scalar(
+            "SELECT AVG(CASE WHEN churn_type='involuntary' THEN 1.0 ELSE 0 END) "
+            "FROM subscriptions")),
+        "cost": float(scalar("SELECT AVG(mrr) FROM subscriptions")),
+    }
+
+
 # --------------------------------------------------------------------------- #
 # Header + onboarding
 # --------------------------------------------------------------------------- #
@@ -165,43 +191,78 @@ st.markdown(
 )
 
 meta = _metrics_meta()
+stats = _headline_stats()
 
-with st.container():
-    st.markdown(
-        f"""
-        <div style="
-            background: rgba(45,212,191,0.07);
-            border: 1px solid rgba(45,212,191,0.25);
-            border-radius: 12px;
-            padding: 14px 18px;
-            margin: 6px 0 4px 0;">
-            <span style="color:#2dd4bf; font-weight:700;">What's this data?</span><br>
-            {meta.get('domain', '').strip()}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+# --- Headline stat cards --------------------------------------------------- #
+cards = [
+    ("Active subscribers", f"{stats['active']:,}", "currently on a live plan"),
+    ("Overall churn rate", f"{stats['churn']:.1%}", "of all subscriptions"),
+    ("Involuntary churn", f"{stats['involuntary']:.1%}", "lost to failed payments"),
+    ("Avg subscription cost", f"${stats['cost']:,.2f}", "per month"),
+]
+if _HAS_SHADCN:
+    cols = st.columns(4)
+    for col, (title, value, desc) in zip(cols, cards):
+        with col:
+            ui.metric_card(title=title, content=value, description=desc,
+                           key=f"stat_{title}")
+else:
+    cols = st.columns(4)
+    for col, (title, value, desc) in zip(cols, cards):
+        col.metric(title, value, help=desc)
 
-col_a, col_b = st.columns(2)
-with col_a:
-    with st.expander("📖 Metric definitions — read before you ask", expanded=False):
-        for m in meta.get("metrics", []):
-            st.markdown(f"**{m['name']}** — {m['definition'].strip()}")
-        if meta.get("business_rules"):
-            st.markdown("**Good to know**")
-            for rule in meta["business_rules"]:
-                st.markdown(f"- {rule}")
+# --- Onboarding: context + definitions + data browser ---------------------- #
+st.markdown(
+    f"""
+    <div style="
+        background: rgba(45,212,191,0.07);
+        border: 1px solid rgba(45,212,191,0.25);
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin: 10px 0 6px 0;">
+        <span style="color:#2dd4bf; font-weight:700;">What's this data?</span><br>
+        {meta.get('domain', '').strip()}
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-with col_b:
-    with st.expander("🔎 Browse the underlying synthetic data", expanded=False):
-        tables = _tables()
-        if tables:
-            tbl = st.selectbox("Table", tables, key="data_browser_table")
-            n = st.slider("Rows to preview", 5, 100, 20, step=5, key="data_browser_rows")
-            st.dataframe(_table_preview(tbl, n), use_container_width=True)
-            st.caption("Synthetic data generated for demo purposes — no real customers.")
-        else:
-            st.info("No tables found.")
+
+def _render_definitions() -> None:
+    for m in meta.get("metrics", []):
+        st.markdown(f"**{m['name']}** — {m['definition'].strip()}")
+    if meta.get("business_rules"):
+        st.markdown("**Good to know**")
+        for rule in meta["business_rules"]:
+            st.markdown(f"- {rule}")
+
+
+def _render_data_browser() -> None:
+    tables = _tables()
+    if not tables:
+        st.info("No tables found.")
+        return
+    tbl = st.selectbox("Table", tables, key="data_browser_table")
+    n = st.slider("Rows to preview", 5, 100, 20, step=5, key="data_browser_rows")
+    st.dataframe(_table_preview(tbl, n), use_container_width=True)
+    st.caption("Synthetic data generated for demo purposes — no real customers.")
+
+
+tab_defs = "📖 Metric definitions"
+tab_data = "🔎 Browse the data"
+if _HAS_SHADCN:
+    selected = ui.tabs(options=[tab_defs, tab_data], default_value=tab_defs,
+                       key="onboarding_tabs")
+    if selected == tab_defs:
+        _render_definitions()
+    else:
+        _render_data_browser()
+else:
+    t1, t2 = st.tabs([tab_defs, tab_data])
+    with t1:
+        _render_definitions()
+    with t2:
+        _render_data_browser()
 
 st.divider()
 
