@@ -32,7 +32,7 @@ from app.semantic_layer import load_metrics
 
 load_dotenv()
 
-st.set_page_config(page_title="InsightAgent · Talk to your data", page_icon="📊", layout="wide")
+st.set_page_config(page_title="InsightAgent · Talk to your data", page_icon="🤖", layout="wide")
 
 
 # --------------------------------------------------------------------------- #
@@ -184,7 +184,7 @@ def _headline_stats() -> dict:
 # --------------------------------------------------------------------------- #
 # Header + onboarding
 # --------------------------------------------------------------------------- #
-st.title("Talk to your data 📊")
+st.title("Talk to your data 🤖")
 st.markdown(
     "Ask anything about subscribers, payments, engagement, or churn. "
     "The agent writes and runs its own SQL, then explains what it found."
