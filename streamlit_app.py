@@ -120,8 +120,8 @@ def _inject_css() -> None:
             transition: transform 0.15s ease, border-color 0.15s ease;
         }
         .kpi-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(45,212,191,0.55);
+            transform: translateY(-3px);
+            filter: brightness(1.08);
         }
         .kpi-title {
             color: rgba(230,241,239,0.65);
@@ -239,7 +239,13 @@ def _headline_stats() -> dict:
 # --------------------------------------------------------------------------- #
 # Header + onboarding
 # --------------------------------------------------------------------------- #
-st.title("Talk to your data 🤖")
+st.markdown(
+    '<h1 style="font-weight:800;letter-spacing:-0.5px;margin-bottom:0.2em;">'
+    '<span style="background:linear-gradient(90deg,#2dd4bf 0%,#38bdf8 55%,#818cf8 100%);'
+    '-webkit-background-clip:text;background-clip:text;'
+    '-webkit-text-fill-color:transparent;">Talk to your data</span> 🤖</h1>',
+    unsafe_allow_html=True,
+)
 st.markdown(
     "Ask anything about subscribers, payments, engagement, or churn. "
     "The agent writes and runs its own SQL, then explains what it found."
@@ -248,20 +254,23 @@ st.markdown(
 meta = _metrics_meta()
 stats = _headline_stats()
 
-# --- Headline stat cards (translucent glass) ------------------------------- #
+# --- Headline stat cards (translucent glass, palette-accented) ------------- #
+# Accents harmonise with the teal theme and carry meaning:
+# teal = healthy, sky = neutral info, amber = watch, coral = problem.
 cards = [
-    ("Active subscribers", f"{stats['active']:,}", "currently on a live plan"),
-    ("Overall churn rate", f"{stats['churn']:.1%}", "of all subscriptions"),
-    ("Involuntary churn", f"{stats['involuntary']:.1%}", "lost to failed payments"),
-    ("Avg subscription cost", f"${stats['cost']:,.2f}", "per month"),
+    ("Active subscribers", f"{stats['active']:,}", "currently on a live plan", "#2dd4bf"),
+    ("Overall churn rate", f"{stats['churn']:.1%}", "of all subscriptions", "#fbbf24"),
+    ("Involuntary churn", f"{stats['involuntary']:.1%}", "lost to failed payments", "#fb7185"),
+    ("Avg subscription cost", f"${stats['cost']:,.2f}", "per month", "#38bdf8"),
 ]
 _card_html = "".join(
-    f'<div class="kpi-card">'
+    f'<div class="kpi-card" style="border-top:3px solid {accent};'
+    f'box-shadow:0 8px 24px rgba(0,0,0,0.25),0 0 0 1px {accent}22;">'
     f'<div class="kpi-title">{title}</div>'
-    f'<div class="kpi-value">{value}</div>'
+    f'<div class="kpi-value" style="color:{accent};">{value}</div>'
     f'<div class="kpi-desc">{desc}</div>'
     f'</div>'
-    for title, value, desc in cards
+    for title, value, desc, accent in cards
 )
 st.markdown(f'<div class="kpi-grid">{_card_html}</div>', unsafe_allow_html=True)
 
