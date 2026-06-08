@@ -94,6 +94,10 @@ CHART RULES (follow strictly)
   SELECT, and return one row per period ordered by time.
 - Rates compared across categories (not time) -> "bar", never "line".
 - Never use "pie".
+- Return any rate/percentage column as a RAW FRACTION between 0 and 1 (e.g.
+  0.0028 for 0.28%). Do NOT multiply by 100, and do NOT name columns with a
+  `_pct`/`_percent` suffix. The app formats fractions as percentages for
+  display, so pre-scaling double-counts and shows values 100x too large.
 
 RULES
 - Read-only: never attempt INSERT/UPDATE/DELETE/DDL. They will be rejected.

@@ -22,12 +22,33 @@ def _is_temporal(x: str | None) -> bool:
     return bool(x) and any(k in x.lower() for k in _TEMPORAL_KEYWORDS)
 
 
-def _is_rate(col: str | None) -> bool:
-    """A rate/percentage column we should render as a percentage."""
+def _is_percent_units(col: str | None) -> bool:
+    """Column already expressed in percent units (e.g. 0.28 means 0.28%).
+
+    The agent sometimes pre-multiplies a rate by 100 and names it `*_pct` /
+    `*_percent`. Such a column must NOT be re-scaled by Plotly's `%` format.
+    """
     if not col:
         return False
     c = col.lower()
-    return any(k in c for k in ("rate", "pct", "percent", "ratio", "share"))
+    return "pct" in c or "percent" in c
+
+
+def _is_rate(col: str | None) -> bool:
+    """A fractional rate column (0-1) to render as a percentage via `.2%`."""
+    if not col:
+        return False
+    c = col.lower()
+    return any(k in c for k in ("rate", "ratio", "share"))
+
+
+def _apply_rate_format(fig, col: str | None, axis: str = "y") -> None:
+    """Format an axis for a rate column, accounting for fraction vs percent units."""
+    setter = fig.update_yaxes if axis == "y" else fig.update_xaxes
+    if _is_percent_units(col):
+        setter(tickformat=".2f", ticksuffix="%")
+    elif _is_rate(col):
+        setter(tickformat=".2%")
 
 
 def _enforce_chart_rules(spec: dict, df: pd.DataFrame) -> dict:
@@ -105,10 +126,13 @@ def _build_combo(df: pd.DataFrame, spec: dict):
 
     fig.update_yaxes(title_text=bar_y.replace("_", " "), secondary_y=False)
     fig.update_yaxes(title_text=line_y.replace("_", " "), secondary_y=True)
-    if _is_rate(line_y):
-        fig.update_yaxes(tickformat=".2%", secondary_y=True)
-    if _is_rate(bar_y):
-        fig.update_yaxes(tickformat=".2%", secondary_y=False)
+    # Format each axis for rates, distinguishing fractions (0-1) from columns
+    # already expressed in percent units (e.g. a *_pct column holding 0.28).
+    for col, sec in ((line_y, True), (bar_y, False)):
+        if _is_percent_units(col):
+            fig.update_yaxes(tickformat=".2f", ticksuffix="%", secondary_y=sec)
+        elif _is_rate(col):
+            fig.update_yaxes(tickformat=".2%", secondary_y=sec)
 
     fig.update_layout(
         title=spec.get("title") or "",
@@ -172,12 +196,14 @@ def build_figure(df: pd.DataFrame | None, spec: dict | None):
     except Exception:  # noqa: BLE001  any plotting issue -> no chart, not a crash
         return None
 
-    # Render rate columns as percentages, rounded to 2 decimals.
-    if _is_rate(y):
-        fig.update_yaxes(tickformat=".2%")
+    # Render rate columns as percentages, rounded to 2 decimals. Percent-unit
+    # columns (already x100, e.g. *_pct) are shown with a % suffix, not re-scaled.
+    _apply_rate_format(fig, y, axis="y")
+    _apply_rate_format(fig, x, axis="x")
+    if _is_percent_units(y):
+        fig.update_traces(hovertemplate=f"%{{x}}<br>{y}=%{{y:.2f}}%<extra></extra>")
+    elif _is_rate(y):
         fig.update_traces(hovertemplate=f"%{{x}}<br>{y}=%{{y:.2%}}<extra></extra>")
-    if _is_rate(x):
-        fig.update_xaxes(tickformat=".2%")
 
     fig.update_layout(margin=dict(l=10, r=10, t=50, b=10), height=420)
     return fig
