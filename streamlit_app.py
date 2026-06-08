@@ -221,21 +221,45 @@ def _table_preview(table: str, n: int) -> "object":
 
 @st.cache_data(show_spinner=False)
 def _headline_stats() -> dict:
-    """Key numbers for the top stat cards."""
+    """Key numbers for the top stat cards.
+
+    Churn is the proper per-period rate: subscriptions that churned in the
+    latest month divided by the base active at the start of that month.
+    """
     def scalar(sql: str):
         return database.run_query(sql).dataframe.iloc[0, 0]
 
+    active = int(scalar("SELECT COUNT(*) FROM subscriptions WHERE status='active'"))
+    cost = float(scalar("SELECT AVG(mrr) FROM subscriptions"))
+
+    latest = str(scalar(
+        "SELECT MAX(strftime('%Y-%m', activity_month)) FROM engagement"))
+    first_day = f"{latest}-01"
+    base = int(scalar(
+        "SELECT COUNT(*) FROM subscriptions "
+        f"WHERE start_date < '{first_day}' "
+        f"AND (churn_date IS NULL OR churn_date >= '{first_day}')")) or 1
+    churned = int(scalar(
+        "SELECT COUNT(*) FROM subscriptions "
+        f"WHERE strftime('%Y-%m', churn_date) = '{latest}'"))
+    involuntary = int(scalar(
+        "SELECT COUNT(*) FROM subscriptions "
+        f"WHERE churn_type='involuntary' AND strftime('%Y-%m', churn_date) = '{latest}'"))
+
     return {
-        "active": int(scalar(
-            "SELECT COUNT(*) FROM subscriptions WHERE status = 'active'")),
-        "churn": float(scalar(
-            "SELECT AVG(CASE WHEN status='churned' THEN 1.0 ELSE 0 END) "
-            "FROM subscriptions")),
-        "involuntary": float(scalar(
-            "SELECT AVG(CASE WHEN churn_type='involuntary' THEN 1.0 ELSE 0 END) "
-            "FROM subscriptions")),
-        "cost": float(scalar("SELECT AVG(mrr) FROM subscriptions")),
+        "active": active,
+        "cost": cost,
+        "latest_month": latest,
+        "monthly_churn": churned / base,
+        "monthly_involuntary": involuntary / base,
     }
+
+
+def _fmt_month(ym: str) -> str:
+    try:
+        return time.strftime("%b %Y", time.strptime(ym, "%Y-%m"))
+    except Exception:  # noqa: BLE001
+        return ym
 
 
 # --------------------------------------------------------------------------- #
@@ -259,10 +283,11 @@ stats = _headline_stats()
 # --- Headline stat cards (translucent glass, palette-accented) ------------- #
 # Accents harmonise with the teal theme and carry meaning:
 # teal = healthy, sky = neutral info, amber = watch, coral = problem.
+_month_lbl = _fmt_month(stats["latest_month"])
 cards = [
     ("Active subscribers", f"{stats['active']:,}", "currently on a live plan", "#2dd4bf"),
-    ("Overall churn rate", f"{stats['churn']:.1%}", "of all subscriptions", "#fbbf24"),
-    ("Involuntary churn", f"{stats['involuntary']:.1%}", "lost to failed payments", "#fb7185"),
+    ("Monthly churn rate", f"{stats['monthly_churn']:.2%}", f"all churn · {_month_lbl}", "#fbbf24"),
+    ("Involuntary churn", f"{stats['monthly_involuntary']:.2%}", f"failed payments · {_month_lbl}", "#fb7185"),
     ("Avg subscription cost", f"${stats['cost']:,.2f}", "per month", "#38bdf8"),
 ]
 _card_html = "".join(

@@ -25,20 +25,38 @@ metrics:
       column on a subscription). Use AVG for the typical price across a group.
     sql_logic: "AVG(mrr) FROM subscriptions"
 
-  - name: Overall Churn Rate
-    definition: Share of all subscriptions that have churned (voluntary or involuntary).
-    sql_logic: "AVG(CASE WHEN status = 'churned' THEN 1.0 ELSE 0 END) FROM subscriptions"
+  - name: Monthly Churn Rate
+    definition: >
+      Share of the active subscriber base that churns in a given period
+      (monthly by default; weekly if asked). Numerator is the number of
+      subscriptions that churn during the period; denominator is the number
+      active at the START of that period. This is a per-period rate, NOT a
+      lifetime cumulative figure.
+    sql_logic: >
+      For period P: COUNT(subscriptions whose churn_date falls in P)
+      / COUNT(subscriptions active at the start of P, i.e.
+      start_date < first day of P AND (churn_date IS NULL OR
+      churn_date >= first day of P)). Group by strftime('%Y-%m', churn_date)
+      for a monthly trend.
 
   - name: Voluntary Churn Rate
-    definition: Share of subscriptions cancelled deliberately by the customer.
-    sql_logic: "AVG(CASE WHEN churn_type = 'voluntary' THEN 1.0 ELSE 0 END) FROM subscriptions"
+    definition: >
+      Monthly rate of deliberate cancellations: subscriptions with
+      churn_type='voluntary' whose churn_date falls in the period, divided by
+      the active base at the start of the period.
+    sql_logic: >
+      COUNT(churn_type='voluntary' AND churn_date in period P)
+      / COUNT(subscriptions active at the start of P).
 
   - name: Involuntary Churn Rate
     definition: >
-      Share of subscriptions lost because billing failed (payment could not be
-      collected). This is recoverable churn and is the highest-leverage metric
-      to act on.
-    sql_logic: "AVG(CASE WHEN churn_type = 'involuntary' THEN 1.0 ELSE 0 END) FROM subscriptions"
+      Monthly rate of subscriptions lost because billing failed (payment could
+      not be collected): churn_type='involuntary' whose churn_date falls in the
+      period, divided by the active base at the start of the period. This is
+      recoverable churn.
+    sql_logic: >
+      COUNT(churn_type='involuntary' AND churn_date in period P)
+      / COUNT(subscriptions active at the start of P).
 
   - name: Payment Success Rate
     definition: Share of payment attempts with status 'success'.
@@ -59,7 +77,15 @@ metrics:
 # Plain-language hints the agent should treat as ground truth.
 business_rules:
   - "churn_type is 'active' for live subscriptions, otherwise 'voluntary' or 'involuntary'."
-  - "Involuntary churn is caused by failed payments; it is recoverable and the top business priority."
+  - >
+    Churn rate is ALWAYS a per-period metric (monthly by default, weekly if the
+    user asks). Numerator = subscriptions that churned during the period (by
+    churn_date; filter on churn_type for voluntary/involuntary). Denominator =
+    subscriptions active at the START of the period: start_date < first day of
+    the period AND (churn_date IS NULL OR churn_date >= first day of the period).
+    NEVER divide by the all-time count of subscriptions, and never use
+    status='churned' over the whole table as a 'rate'.
+  - "Involuntary churn is caused by failed payments; it is recoverable and a key priority."
   - "Engagement (streaming_hours) is the strongest leading indicator of voluntary churn."
   - "A payment 'amount' is negative when status = 'refunded'."
   - "Dates are stored as ISO text (YYYY-MM-DD); use SQLite date functions like strftime for month grouping."
