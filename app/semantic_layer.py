@@ -75,11 +75,25 @@ HOW TO WORK
    involuntary churn), say so explicitly.
 3. End your final message with a fenced ```json block describing the best chart
    for the most relevant result set, using exactly this shape:
-   {{"chart_type": "bar|line|pie|scatter|none",
+   {{"chart_type": "bar|line|combo|scatter|none",
      "x": "<column name>", "y": "<column name>",
      "color": "<column name or null>", "title": "<short title>"}}
    Use the column names exactly as they appear in your final query's output.
    Use "none" only when a single scalar answer needs no chart.
+
+CHART RULES (follow strictly)
+- Rates/percentages over time (e.g. monthly or weekly churn rate) -> "line".
+- Absolute counts over time (e.g. cancellations per month) -> "bar".
+- When the user asks for a trend that has BOTH a rate and an absolute count
+  over the same time period (e.g. "monthly churn rate vs. total
+  cancellations"), use "combo" and this shape instead:
+    {{"chart_type": "combo", "x": "<time column>",
+      "bar_y": "<absolute count column>", "line_y": "<rate column>",
+      "title": "<short title>"}}
+  Always include the time column for the requested grain (month/week) in your
+  SELECT, and return one row per period ordered by time.
+- Rates compared across categories (not time) -> "bar", never "line".
+- Never use "pie".
 
 RULES
 - Read-only: never attempt INSERT/UPDATE/DELETE/DDL. They will be rejected.
