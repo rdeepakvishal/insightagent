@@ -256,13 +256,11 @@ cards = [
     ("Avg subscription cost", f"${stats['cost']:,.2f}", "per month"),
 ]
 _card_html = "".join(
-    f"""
-    <div class="kpi-card">
-        <div class="kpi-title">{title}</div>
-        <div class="kpi-value">{value}</div>
-        <div class="kpi-desc">{desc}</div>
-    </div>
-    """
+    f'<div class="kpi-card">'
+    f'<div class="kpi-title">{title}</div>'
+    f'<div class="kpi-value">{value}</div>'
+    f'<div class="kpi-desc">{desc}</div>'
+    f'</div>'
     for title, value, desc in cards
 )
 st.markdown(f'<div class="kpi-grid">{_card_html}</div>', unsafe_allow_html=True)
