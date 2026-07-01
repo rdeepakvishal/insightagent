@@ -13,7 +13,7 @@ METRICS_PATH = os.path.join(_HERE, "metrics.yaml")
 
 # LLM settings. "anthropic" (default) or "openai".
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "anthropic").lower()
-ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
 
 MAX_AGENT_STEPS = int(os.environ.get("MAX_AGENT_STEPS", "6"))
