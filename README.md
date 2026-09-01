@@ -2,7 +2,7 @@
 
 **A production-style agentic BI assistant.** Ask a business question in plain English; the agent writes its own SQL, queries a multi-table warehouse, and returns a narrative answer, a chart, and the exact queries it ran. No SQL knowledge required from the user.
 
-> Built as a public, shareable distillation of an internal agentic BI assistant I shipped at Amazon Prime Video, where Senior Product Leaders and Directors query 100+ tables and 120+ metrics in natural language. This repo recreates the core pattern on a synthetic subscription-payments dataset so the approach can be inspected end to end.
+> Built as a public, shareable distillation of an internal agentic BI assistant I shipped for a subscription streaming service, where product and finance leaders query the warehouse in natural language instead of filing ticket requests. This repo recreates the core pattern on a synthetic subscription-payments dataset so the approach can be inspected end to end.
 
 **Live demo:** https://insightagent-dvr.streamlit.app/
 **Author:** Deepak Vishal Rajan ([LinkedIn](https://www.linkedin.com/in/deepak-vishal-rajan/))
